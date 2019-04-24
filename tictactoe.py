@@ -3,85 +3,185 @@
 import numpy as np
 # 0 is empty, 1 is X and 2 is O
 
-def print_board(board):
-    for i in range(1,10):
-        print(board[i], end='')
-        if (i%3 == 0):
-            print()
+INF = 100000
+DEPTH = 4
 
-def o_move(num, board):
-    board[num] = 2
+# MinMaxNode class definition
+class MinMaxNode:
+    def __init__(self, prevNode, currState, move, score):
+        self.prevNode = prevNode
+        self.board = currState
+        self.move = move
+        if currState is None:
+            self.score = score
+        else:
+            self.score = self.score()
 
-def x_move(num, board):
-    board[num] = 1
+    def score(self):
+        score_count = 0
+        #row 1
+        score_count += self.check_points([1,2,3])
+        #row 2
+        score_count += self.check_points([4,5,6])
+        #row3
+        score_count += self.check_points([7,8,9])
+        #col1
+        score_count += self.check_points([1,4,7])
+        #col2
+        score_count += self.check_points([2,5,8])
+        #col3
+        score_count += self.check_points([3,6,9])
+        #diagonal top left to bottom right
+        score_count += self.check_points([1,5,9])
+        #diagonal 2
+        score_count += self.check_points([3,5,7])
+        return score_count
 
-def isFull(board):
-    for ele in board:
-        if ele == 0:
-            return False
-    return True
+    # assigns heuristic based on line
+    # x is negative because it is our turn and O is the Ai's turn
+    def check_points(self, int_arr):
+        num_x = 0
+        num_o = 0
+        ret = 0
+        for i in int_arr:
+            if self.board[i] == 1:
+                num_x += 1
+            elif self.board[i] == 2:
+                num_o += 1
+        if (num_x > 0 and num_o == 0):
+            if (num_x == 3) :
+                ret = - 1000
+            else :
+                ret = - num_x * 2
+            return ret
+        if (num_o > 0 and num_x == 0):
+            if (num_o == 3) :
+                ret = 1000
+            else :
+                ret = num_x * 2
+            return ret
+        return 0
 
-def hasWon(num, board):
-    return (
-        (board[1] == num and board[2] == num and board[3] == num) or
-        (board[4] == num and board[5] == num and board[6] == num) or
-        (board[7] == num and board[8] == num and board[9] == num) or
-        (board[1] == num and board[4] == num and board[7] == num) or
-        (board[2] == num and board[5] == num and board[8] == num) or
-        (board[3] == num and board[6] == num and board[9] == num) or
-        (board[1] == num and board[5] == num and board[9] == num) or
-        (board[3] == num and board[5] == num and board[7] == num)
-        )
 
-def isEnd(board):
-    if (isFull(board) or hasWon(1, board) or hasWon(2, board)):
-        print_board(board)
+    # finds the children of the board, helper function for funct alphabeta
+    def getChildren(self, num):
+        if (num == 1):
+            return self.getChildrenHelper(1)
+        else:
+            return self.getChildrenHelper(2)
+        return None
+
+    # num specifies whether it is X's or O's move. num =1 for X, num=2 for O
+    # return the children as MinMaxNode object
+    def getChildrenHelper(self, num):
+        boardChildren = []
+        for i in range(1,10):
+            if (self.board[i] == 0):
+                childBoard = np.copy(self.board)
+                childBoard[i] = num
+                child = MinMaxNode(self, childBoard, i, 0)
+                boardChildren.append(child)
+        return boardChildren
+
+    # X is positive and O is negative
+    def print_board(self):
+        print()
+        for i in range(1,10):
+            print(self.board[i], end='')
+            if (i%3 == 0):
+                print()
+
+    def o_move(self, move):
+        self.board[move] = 2
+
+    def x_move(self, move):
+        self.board[move] = 1
+
+    def isFull(self):
+        for ele in self.board:
+            if ele == 0:
+                return False
         return True
-    return False
 
-# X is positive and O is negative
-def score(board):
-    score_count = 0
-    #row 1
-    score_count += check_points(board, [1,2,3])
-    #row 2
-    score_count += check_points(board, [4,5,6])
-    #row3
-    score_count += check_points(board, [7,8,9])
-    #col1
-    score_count += check_points(board, [1,4,7])
-    #col2
-    score_count += check_points(board, [2,5,8])
-    #col3
-    score_count += check_points(board, [3,6,9])
-    #diagonal top left to bottom right
-    score_count += check_points(board, [1,5,9])
-    #diagonal 2
-    score_count += check_points(board, [3,5,7])
-    return score_count
+    def hasWon(self, num):
+        return (
+            (board[1] == num and board[2] == num and board[3] == num) or
+            (board[4] == num and board[5] == num and board[6] == num) or
+            (board[7] == num and board[8] == num and board[9] == num) or
+            (board[1] == num and board[4] == num and board[7] == num) or
+            (board[2] == num and board[5] == num and board[8] == num) or
+            (board[3] == num and board[6] == num and board[9] == num) or
+            (board[1] == num and board[5] == num and board[9] == num) or
+            (board[3] == num and board[5] == num and board[7] == num)
+            )
 
-# assigns heuristic based on line
-# what if there is 2 X's or O's in one line, still assign 1 or -1 ??
-# what if the line is exclusively X's or O's (win conidtion) still 1 or -1??
-def check_points(board, int_arr):
-    num_x = 0
-    num_o = 0
-    for i in int_arr:
-        if board[i] == 1:
-            num_x += 1
-        elif board[i] == 2:
-            num_o += 1
-    if (num_x > 0 and num_o == 0):
-        return 1
-    if (num_o > 0 and num_x == 0):
-        return -1
-    return 0
+    def isEnd(self):
+        if (self.isFull() or self.hasWon(1) or self.hasWon(2)):
+            return True
+        return False
+### End of class Definition
+
+
+
+
+''' sudo code from AI lecture
+function alphabeta( node, depth, α, β )
+    if node is terminal or depth = 0 { return heuristic value of node }
+    if we are to play at node
+        foreach child of node
+            let α = max( α, alphabeta( child, depth-1, α, β ))
+            if α ≥ β { return α }
+        return α
+    else // opponent is to play at node
+        foreach child of node
+            let β = min( β, alphabeta( child, depth-1, α, β ))
+            if β ≤ α { return β }
+        return β
+'''
+def minmax(node):
+    global INF
+    global DEPTH
+    alpha = MinMaxNode(None, None, 0, -INF)
+    beta = MinMaxNode(None, None, 0, INF)
+    return alphabeta(node, DEPTH, alpha, beta, 1)
+
+# alpha beta pruning, num ==1 for our turn num == -1 for the others turn
+def alphabeta(node, depth, alpha, beta, num):
+    if depth == 0 or node.isEnd():
+        return node
+    if num == 1:
+        for child in node.getChildren(num):
+            childNode = alphabeta(child, depth-1, alpha, beta, -1)
+            if childNode.score > alpha.score :
+                alpha = childNode
+            if alpha.score >= beta.score :
+                break
+        return alpha
+    else:
+        for child in node.getChildren(num):
+            childNode = alphabeta(child, depth-1, alpha, beta, 1)
+            if (childNode.score < beta.score) :
+                beta = childNode
+            if alpha.score >= beta.score :
+                break
+        return beta
+
+def find_first_move(node):
+    tmp = node
+    while node.prevNode is not None:
+        tmp = node
+        node = tmp.prevNode
+    return tmp.move
 
 if __name__ == "__main__":
     board = np.zeros((10), dtype="int8")
     board[0] = 3
-    while(not isEnd(board)):
-        x_move(int(input("X's move\n")), board)
-        if (isEnd(board)):
+    node = MinMaxNode(None, board, 0, 0)
+    while(not node.isEnd()):
+        node.x_move(int(input("X's move\n")))
+        node.print_board()
+        if (node.isEnd()):
             break
-        o_move(int(input("O's move\n")), board)
+        a = minmax(node)
+        node.o_move(int(find_first_move(a)))
+        node.print_board()
