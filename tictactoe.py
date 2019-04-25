@@ -48,6 +48,7 @@ class MinMaxNode:
                 num_x += 1
             elif self.board[i] == 2:
                 num_o += 1
+
         if (num_x > 0 and num_o == 0):
             if (num_x == 3) :
                 ret = - 1000
@@ -58,17 +59,18 @@ class MinMaxNode:
             if (num_o == 3) :
                 ret = 1000
             else :
-                ret = num_x * 2
+                ret = num_o * 2
             return ret
         return 0
 
 
     # finds the children of the board, helper function for funct alphabeta
+    # one is the Ai's turn
     def getChildren(self, num):
         if (num == 1):
-            return self.getChildrenHelper(1)
-        else:
             return self.getChildrenHelper(2)
+        else:
+            return self.getChildrenHelper(1)
         return None
 
     # num specifies whether it is X's or O's move. num =1 for X, num=2 for O
@@ -105,14 +107,14 @@ class MinMaxNode:
 
     def hasWon(self, num):
         return (
-            (board[1] == num and board[2] == num and board[3] == num) or
-            (board[4] == num and board[5] == num and board[6] == num) or
-            (board[7] == num and board[8] == num and board[9] == num) or
-            (board[1] == num and board[4] == num and board[7] == num) or
-            (board[2] == num and board[5] == num and board[8] == num) or
-            (board[3] == num and board[6] == num and board[9] == num) or
-            (board[1] == num and board[5] == num and board[9] == num) or
-            (board[3] == num and board[5] == num and board[7] == num)
+            (self.board[1] == num and self.board[2] == num and self.board[3] == num) or
+            (self.board[4] == num and self.board[5] == num and self.board[6] == num) or
+            (self.board[7] == num and self.board[8] == num and self.board[9] == num) or
+            (self.board[1] == num and self.board[4] == num and self.board[7] == num) or
+            (self.board[2] == num and self.board[5] == num and self.board[8] == num) or
+            (self.board[3] == num and self.board[6] == num and self.board[9] == num) or
+            (self.board[1] == num and self.board[5] == num and self.board[9] == num) or
+            (self.board[3] == num and self.board[5] == num and self.board[7] == num)
             )
 
     def isEnd(self):
@@ -148,6 +150,7 @@ def minmax(node):
 # alpha beta pruning, num ==1 for our turn num == -1 for the others turn
 def alphabeta(node, depth, alpha, beta, num):
     if depth == 0 or node.isEnd():
+        #print(node.score)
         return node
     if num == 1:
         for child in node.getChildren(num):
@@ -173,7 +176,7 @@ def find_first_move(node):
         node = tmp.prevNode
     return tmp.move
 
-if __name__ == "__main__":
+def play():
     board = np.zeros((10), dtype="int8")
     board[0] = 3
     node = MinMaxNode(None, board, 0, 0)
@@ -185,3 +188,13 @@ if __name__ == "__main__":
         a = minmax(node)
         node.o_move(int(find_first_move(a)))
         node.print_board()
+def test():
+    board = np.zeros((10), dtype="int8")
+    board[0] = 3
+    node = MinMaxNode(None, board, 0, 0)
+    board[1] = 1
+    node = MinMaxNode(None, board, 0, 0)
+    print(node.score)
+
+if __name__ == "__main__":
+    play()
