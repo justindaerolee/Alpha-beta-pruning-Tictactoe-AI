@@ -33,6 +33,8 @@ OPPONENT = 0
 IS_ALPHA_FLAG = 2
 IS_BETA_FLAG = 3
 
+
+
 # MinMaxNode class definition
 class MinMaxNode:
     # flag = 0 (is non-leaf), 1 (leaf), 2 (initial alpha), 3 (intial beta)
@@ -45,7 +47,7 @@ class MinMaxNode:
         self.score = 0
 
     # score only needed for leaf nodes and initial alpha and beta nodes
-    def get_score(self):
+    def getScore(self):
         global INF
         ret = 0
         if (self.flag == 1) :
@@ -58,33 +60,33 @@ class MinMaxNode:
             sys.exit("Cannot access score of non-leaf nodes")
         return ret
 
-    def calculate_score(self):
+    def calculateScore(self):
         self.flag = 1
-        self.score = self.get_heuristic()
+        self.score = self.getHeuristic()
 
     # Wrapper function to calculate the heuristic score of the boards
-    def get_heuristic(self):
-        score_count = 0
+    def getHeuristic(self):
+        scoreCount = 0
         #row 1
-        score_count += self.check_points([1,2,3])
+        scoreCount += self.checkPoints([1,2,3])
         #row 2
-        score_count += self.check_points([4,5,6])
+        scoreCount += self.checkPoints([4,5,6])
         #row3
-        score_count += self.check_points([7,8,9])
+        scoreCount += self.checkPoints([7,8,9])
         #col1
-        score_count += self.check_points([1,4,7])
+        scoreCount += self.checkPoints([1,4,7])
         #col2
-        score_count += self.check_points([2,5,8])
+        scoreCount += self.checkPoints([2,5,8])
         #col3
-        score_count += self.check_points([3,6,9])
+        scoreCount += self.checkPoints([3,6,9])
         #diagonal top left to bottom right
-        score_count += self.check_points([1,5,9])
+        scoreCount += self.checkPoints([1,5,9])
         #diagonal 2
-        score_count += self.check_points([3,5,7])
-        return score_count
+        scoreCount += self.checkPoints([3,5,7])
+        return scoreCount
 
     # assigns heuristic based on line
-    def check_points(self, int_arr):
+    def checkPoints(self, int_arr):
         global PLAYER
         global OPPONENT
         num_player = 0
@@ -92,9 +94,9 @@ class MinMaxNode:
         ret = 0
         for j in range(1,10):
             for i in int_arr:
-                if self.boards[j][i] == PLAYER:
+                if self.fullBoard[j][i] == PLAYER:
                     num_player += 1
-                elif self.boards[j][i] == OPPONENT:
+                elif self.fullBoard[j][i] == OPPONENT:
                     num_oppo += 1
             if (num_player > 0 and num_oppo == 0):
                 if (num_player == 3) :
@@ -111,12 +113,12 @@ class MinMaxNode:
 
     # finds the children of the current board state
     # one is the Ai's turn
-    def getChildren(self, num):
+    def getChildren(self, targetBoard, num):
         boardsChildren = []
         for i in range(1,10):
-            if (self.boards[i] == 0):
-                childBoards = np.copy(self.boards)
-                childBoards[i] = num
+            if (self.fullBoard[targetBoard][i] == 0):
+                childBoards = np.copy(self.fullBoard)
+                childBoards[targetBoard][i] = num
                 child = MinMaxNode(self, childBoards, i, 0)
                 boardsChildren.append(child)
         return boardsChildren
@@ -137,26 +139,26 @@ class MinMaxNode:
         global PLAYER
         global OPPONENT
         if depth == 0 or isEnd(self.fullBoard[self.prevNode.move]): # what if the self.prevNode.move == None when depth is set to 1
-            self.calculate_score()
+            self.calculateScore()
             return self
         if num == PLAYER:
-            for child in self.getChildren(PLAYER):
+            for child in self.getChildren(self.prevNode.move, PLAYER):
                 childNode = child.alphabeta(depth-1, alpha, beta, OPPONENT)
-                if childNode.get_score() > alpha.get_score() :
+                if childNode.getScore() > alpha.getScore() :
                     alpha = childNode
-                if alpha.get_score() >= beta.get_score() :
+                if alpha.getScore() >= beta.getScore() :
                     break
             return alpha
         else:
             for child in self.getChildren(OPPONENT):
                 childNode = child.alphabeta(depth-1, alpha, beta, PLAYER)
-                if (childNode.get_score() < beta.get_score()) :
+                if (childNode.getScore() < beta.getScore()) :
                     beta = childNode
-                if alpha.get_score() >= beta.get_score() :
+                if alpha.getScore() >= beta.getScore() :
                     break
             return beta
 
-    def find_minmax_move(self):
+    def findMinmaxMove(self):
         node = self.minmax()
         tmp = node
         while node.prevNode is not None:
@@ -166,10 +168,12 @@ class MinMaxNode:
 
 ### End of class Definition
 
-def get_next_best_move(boards):
-    check_players_set() # make sure the players are set
-    m = MinMaxNode(None, boards, 0, 0)
-    return m.find_minmax_move()
+def getNextBestMove(fullBoard, move):
+    global curr
+    checkPlayersSet() # make sure the players are set
+    prev = MinMaxNode(None, None, curr, 0)
+    m = MinMaxNode(prev, fullBoard, move, 0)
+    return m.findMinmaxMove()
 
 
 # checks for one sub board
@@ -198,7 +202,7 @@ def isEnd(board):
 
 # CHECK THAT THE PLAYER AND OPPONENT HAS BEEN SET
 # Doesnt need to be set, just extra precaution
-def check_players_set():
+def checkPlayersSet():
     global PLAYER
     global OPPONENT
     if PLAYER == 1 and OPPONENT == 2:
@@ -209,7 +213,7 @@ def check_players_set():
     return False
 
 # set the global variable of the player and the opponent for the AI.
-def set_player(c):
+def setPlayer(c):
     global PLAYER
     global OPPONENT
     if (c == "x") :
@@ -222,7 +226,7 @@ def set_player(c):
         OPPONENT = 2
     else :
         OPPONENT = 1
-    check_players_set()
+    checkPlayersSet()
 '''
 END of mySection
 '''
@@ -271,11 +275,12 @@ def place(board, num, player):
     global boards
     curr = num
     boards[board][num] = player
-    print_board(board)
+    print_board(boards)
 
 # read what the server sent us and
 # only parses the strings that are necessary
 def parse(string):
+    global curr
     if "(" in string:
         command, args = string.split("(")
         args = args.split(")")[0]
@@ -285,16 +290,16 @@ def parse(string):
 
     if command == "second_move":
         place(int(args[0]), int(args[1]), 2)
-        return play()
+        return getNextBestMove(boards, int(args[1]))
     elif command == "third_move":
         # place the move that was generated for us
         place(int(args[0]), int(args[1]), 1)
         # place their last move
         place(curr, int(args[2]), 2)
-        return play()
+        return getNextBestMove(boards, int(args[2]))
     elif command == "next_move":
         place(curr, int(args[0]), 2)
-        return play()
+        return getNextBestMove(boards, int(args[0]))
     elif command == "win":
         print("Yay!! We win!! :)")
         return -1
@@ -302,7 +307,7 @@ def parse(string):
         print("We lost :(")
         return -1
     elif command == "start":
-        set_player(args[0])
+        setPlayer(args[0])
     return 0
 
 # connect to socket

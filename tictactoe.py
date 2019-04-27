@@ -148,9 +148,10 @@ class MinMaxNode:
 
 ### End of class Definition
 
-def get_next_best_move(board):
+
+def get_next_best_move(board, move):
     check_players_set() # make sure the players are set
-    m = MinMaxNode(None, board, 0, 0)
+    m = MinMaxNode(None, board, move, 0)
     return m.find_minmax_move()
 
 
