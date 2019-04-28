@@ -20,8 +20,8 @@ curr = 0 # this is the current board to play in
 '''
 My section
 '''
-INF = 100000
-DEPTH = 1
+INF = 1000000
+DEPTH = 2
 
 PLAYER_X = 1
 PLAYER_O = 2
@@ -58,6 +58,7 @@ class MinMaxNode:
             ret = INF
         else :
             sys.exit("Cannot access score of non-leaf nodes")
+        print("score" + str(ret))
         return ret
 
     def calculateScore(self):
@@ -86,13 +87,14 @@ class MinMaxNode:
         return scoreCount
 
     # assigns heuristic based on line
+    # change this...
     def checkPoints(self, int_arr):
         global PLAYER
         global OPPONENT
-        num_player = 0
-        num_oppo = 0
         ret = 0
         for j in range(1,10):
+            num_player = 0
+            num_oppo = 0
             for i in int_arr:
                 if self.fullBoard[j][i] == PLAYER:
                     num_player += 1
@@ -100,18 +102,19 @@ class MinMaxNode:
                     num_oppo += 1
             if (num_player > 0 and num_oppo == 0):
                 if (num_player == 3) :
-                    ret += 1000
+                    ret += 10000
                 else :
                     ret += num_player * 2
             elif (num_oppo > 0 and num_player == 0):
                 if (num_oppo == 3) :
-                    ret -= 1000
+                    ret -= 10000
                 else :
                     ret -= num_oppo * 2
         return ret
 
 
     # finds the children of the current board state
+    #children are not being added properly, the currboard is off
     # one is the Ai's turn
     def getChildren(self, targetBoard, num):
         boardsChildren = []
@@ -121,6 +124,8 @@ class MinMaxNode:
                 childBoards[targetBoard][i] = num
                 child = MinMaxNode(self, childBoards, i, 0)
                 boardsChildren.append(child)
+                print("HELLOOO")
+                print_board(child.fullBoard)
         return boardsChildren
 
     # wrapper function for alpha beta pruning
@@ -141,17 +146,19 @@ class MinMaxNode:
         if depth == 0 or isEnd(self.fullBoard[self.prevNode.move]): # what if the self.prevNode.move == None when depth is set to 1
             self.calculateScore()
             return self
-        if num == PLAYER:
+        elif num == PLAYER:
             for child in self.getChildren(self.prevNode.move, PLAYER):
                 childNode = child.alphabeta(depth-1, alpha, beta, OPPONENT)
+                #print_board(childNode.fullBoard)
                 if childNode.getScore() > alpha.getScore() :
                     alpha = childNode
                 if alpha.getScore() >= beta.getScore() :
                     break
             return alpha
         else:
-            for child in self.getChildren(OPPONENT):
+            for child in self.getChildren(self.prevNode.move, OPPONENT):
                 childNode = child.alphabeta(depth-1, alpha, beta, PLAYER)
+                print_board(childNode.fullBoard)
                 if (childNode.getScore() < beta.getScore()) :
                     beta = childNode
                 if alpha.getScore() >= beta.getScore() :
@@ -160,8 +167,9 @@ class MinMaxNode:
 
     def findMinmaxMove(self):
         node = self.minmax()
+        print("The score alphabeta pruning is " + str(node.getScore()))
         tmp = node
-        while node.prevNode is not None:
+        while node.prevNode.prevNode is not None:
             tmp = node
             node = tmp.prevNode
         return tmp.move
@@ -177,6 +185,7 @@ def getNextBestMove(fullBoard, move):
 
 
 # checks for one sub board
+# change this for sub[0] = is empty !!!
 def isFull(board):
     for ele in board:
         if ele == 0:
@@ -275,12 +284,14 @@ def place(board, num, player):
     global boards
     curr = num
     boards[board][num] = player
-    print_board(boards)
+    #print_board(boards)
 
 # read what the server sent us and
 # only parses the strings that are necessary
 def parse(string):
     global curr
+    global PLAYER
+    global OPPONENT
     if "(" in string:
         command, args = string.split("(")
         args = args.split(")")[0]
@@ -289,17 +300,23 @@ def parse(string):
         command, args = string, []
 
     if command == "second_move":
-        place(int(args[0]), int(args[1]), 2)
-        return getNextBestMove(boards, int(args[1]))
+        place(int(args[0]), int(args[1]), OPPONENT)
+        bestMove = getNextBestMove(boards, int(args[1]))
+        place(curr, bestMove, PLAYER)
+        return bestMove
     elif command == "third_move":
         # place the move that was generated for us
-        place(int(args[0]), int(args[1]), 1)
+        place(int(args[0]), int(args[1]), PLAYER)
         # place their last move
-        place(curr, int(args[2]), 2)
-        return getNextBestMove(boards, int(args[2]))
+        place(curr, int(args[2]), OPPONENT)
+        bestMove = getNextBestMove(boards, int(args[2]))
+        place(curr, bestMove, PLAYER)
+        return bestMove
     elif command == "next_move":
-        place(curr, int(args[0]), 2)
-        return getNextBestMove(boards, int(args[0]))
+        place(curr, int(args[0]), OPPONENT)
+        bestMove = getNextBestMove(boards, int(args[0]))
+        place(curr, bestMove, PLAYER)
+        return bestMove
     elif command == "win":
         print("Yay!! We win!! :)")
         return -1
@@ -330,5 +347,22 @@ def main():
                 print((str(response) + "\n"))
                 s.sendall((str(response) + "\n").encode())
 
+def test():
+    boards[1][5] = 2
+    boards[4][5] = 2
+    boards[5][1] = 2
+    boards[9][5] = 2
+
+    boards[1][9] = 1
+    boards[5][4] = 1
+    boards[5][5] = 1
+    boards[5][6] = 1
+    boards[6][1] = 1
+    a = MinMaxNode(None, boards, 0, 0)
+    setPlayer('o')
+    a.calculateScore()
+    print(a.getScore())
+
 if __name__ == "__main__":
     main()
+    #test()
