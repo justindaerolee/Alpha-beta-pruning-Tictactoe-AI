@@ -21,7 +21,7 @@ curr = 0 # this is the current board to play in
 My section
 '''
 INF = 1000000
-DEPTH = 2
+DEPTH = 5
 
 PLAYER_X = 1
 PLAYER_O = 2
@@ -58,7 +58,7 @@ class MinMaxNode:
             ret = INF
         else :
             sys.exit("Cannot access score of non-leaf nodes")
-        print("score" + str(ret))
+        #print("score" + str(ret))
         return ret
 
     def calculateScore(self):
@@ -124,8 +124,8 @@ class MinMaxNode:
                 childBoards[targetBoard][i] = num
                 child = MinMaxNode(self, childBoards, i, 0)
                 boardsChildren.append(child)
-                print("HELLOOO")
-                print_board(child.fullBoard)
+                #print("HELLOOO")
+                #print_board(child.fullBoard)
         return boardsChildren
 
     # wrapper function for alpha beta pruning
@@ -140,6 +140,7 @@ class MinMaxNode:
         return self.alphabeta(DEPTH, alpha, beta, PLAYER)
 
     # alpha beta pruning
+    # is the self.prevNode right?
     def alphabeta(self, depth, alpha, beta, num):
         global PLAYER
         global OPPONENT
@@ -147,7 +148,7 @@ class MinMaxNode:
             self.calculateScore()
             return self
         elif num == PLAYER:
-            for child in self.getChildren(self.prevNode.move, PLAYER):
+            for child in self.getChildren(self.move, PLAYER):
                 childNode = child.alphabeta(depth-1, alpha, beta, OPPONENT)
                 #print_board(childNode.fullBoard)
                 if childNode.getScore() > alpha.getScore() :
@@ -156,9 +157,9 @@ class MinMaxNode:
                     break
             return alpha
         else:
-            for child in self.getChildren(self.prevNode.move, OPPONENT):
+            for child in self.getChildren(self.move, OPPONENT):
                 childNode = child.alphabeta(depth-1, alpha, beta, PLAYER)
-                print_board(childNode.fullBoard)
+                #print_board(childNode.fullBoard)
                 if (childNode.getScore() < beta.getScore()) :
                     beta = childNode
                 if alpha.getScore() >= beta.getScore() :
@@ -167,7 +168,7 @@ class MinMaxNode:
 
     def findMinmaxMove(self):
         node = self.minmax()
-        print("The score alphabeta pruning is " + str(node.getScore()))
+        #print("The score alphabeta pruning is " + str(node.getScore()))
         tmp = node
         while node.prevNode.prevNode is not None:
             tmp = node
