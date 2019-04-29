@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/Library/Frameworks/Python.framework/Versions/3.7/bin/python3
 # Sample starter bot by Zac Partrdige
 # 06/04/19
 
@@ -22,6 +22,7 @@ My section
 '''
 INF = 1000000
 DEPTH = 5
+MOVE = 0
 
 PLAYER_X = 1
 PLAYER_O = 2
@@ -65,62 +66,71 @@ class MinMaxNode:
         self.flag = 1
         self.score = self.getHeuristic()
 
-    # Wrapper function to calculate the heuristic score of the boards
     def getHeuristic(self):
         scoreCount = 0
-        #row 1
-        scoreCount += self.checkPoints([1,2,3])
-        #row 2
-        scoreCount += self.checkPoints([4,5,6])
-        #row3
-        scoreCount += self.checkPoints([7,8,9])
-        #col1
-        scoreCount += self.checkPoints([1,4,7])
-        #col2
-        scoreCount += self.checkPoints([2,5,8])
-        #col3
-        scoreCount += self.checkPoints([3,6,9])
-        #diagonal top left to bottom right
-        scoreCount += self.checkPoints([1,5,9])
-        #diagonal 2
-        scoreCount += self.checkPoints([3,5,7])
+        # Get score for each 3x3 on board
+        for j in range(1,10):
+            score = self.checkGrid(j)
+
+            # If the move we make, the board associated is losing then prioritise avoiding it
+            if j == self.move:
+                if score < 0:
+                    scoreCount -= 30
+
+            scoreCount += score
+
         return scoreCount
 
-    # assigns heuristic based on line
-    # change this...
-    def checkPoints(self, int_arr):
+    def checkGrid(self, board_num):
+        ret = 0
+        arr = [[1,2,3],[4,5,6],[7,8,9],[1,4,7],[2,5,8],[3,6,9],[1,5,9],[3,5,7]]
+        for x in range(8):
+            score = self.checkLine(arr[x], board_num)
+            if score == 1000 or score == -1000:
+                return score
+            else:
+                ret += score
+        return ret
+
+    def checkLine(self, arr, board_num):
         global PLAYER
         global OPPONENT
-        ret = 0
-        for j in range(1,10):
-            num_player = 0
-            num_oppo = 0
-            for i in int_arr:
-                if self.fullBoard[j][i] == PLAYER:
-                    num_player += 1
-                elif self.fullBoard[j][i] == OPPONENT:
-                    num_oppo += 1
-            if (num_player > 0 and num_oppo == 0):
-                if (num_player == 3) :
-                    ret += 10000
-                else :
-                    ret += num_player * 2
-            elif (num_oppo > 0 and num_player == 0):
-                if (num_oppo == 3) :
-                    ret -= 10000
-                else :
-                    ret -= num_oppo * 2
-        return ret
+        num_player = 0
+        num_oppo = 0
+
+        for x in range(3):
+            if self.fullBoard[board_num][arr[x]] == PLAYER:
+                num_player += 1
+            elif self.fullBoard[board_num][arr[x]] == OPPONENT:
+                num_oppo += 1
+
+        if num_player == 3:
+            # Player wins
+            return 1000
+        elif num_oppo == 3:
+            # Opponent wins
+            return -1000
+        elif (num_player == 2 and num_oppo == 0):
+            return 10
+        elif (num_player == 1 and num_oppo == 0):
+            return 1
+        elif (num_oppo == 2 and num_player == 0):
+            return -10
+        elif (num_oppo == 1 and num_player == 0):
+            return -1
+        else:
+            # no advantage
+            return 0
 
 
     # finds the children of the current board state
-    #children are not being added properly, the currboard is off
+    # children are not being added properly, the currboard is off
     # one is the Ai's turn
     def getChildren(self, targetBoard, num):
         boardsChildren = []
         for i in range(1,10):
             if (self.fullBoard[targetBoard][i] == 0):
-                childBoards = np.copy(self.fullBoard)
+                childBoards = np.(self.fullBoard)
                 childBoards[targetBoard][i] = num
                 child = MinMaxNode(self, childBoards, i, 0)
                 boardsChildren.append(child)
@@ -168,7 +178,7 @@ class MinMaxNode:
 
     def findMinmaxMove(self):
         node = self.minmax()
-        #print("The score alphabeta pruning is " + str(node.getScore()))
+        print("The score alphabeta pruning is " + str(node.getScore()))
         tmp = node
         while node.prevNode.prevNode is not None:
             tmp = node
@@ -285,7 +295,7 @@ def place(board, num, player):
     global boards
     curr = num
     boards[board][num] = player
-    #print_board(boards)
+    # print_board(boards)
 
 # read what the server sent us and
 # only parses the strings that are necessary
@@ -293,6 +303,8 @@ def parse(string):
     global curr
     global PLAYER
     global OPPONENT
+    global MOVE
+    global DEPTH
     if "(" in string:
         command, args = string.split("(")
         args = args.split(")")[0]
@@ -304,6 +316,7 @@ def parse(string):
         place(int(args[0]), int(args[1]), OPPONENT)
         bestMove = getNextBestMove(boards, int(args[1]))
         place(curr, bestMove, PLAYER)
+        MOVE += 1
         return bestMove
     elif command == "third_move":
         # place the move that was generated for us
@@ -312,11 +325,15 @@ def parse(string):
         place(curr, int(args[2]), OPPONENT)
         bestMove = getNextBestMove(boards, int(args[2]))
         place(curr, bestMove, PLAYER)
+        MOVE += 1
         return bestMove
     elif command == "next_move":
         place(curr, int(args[0]), OPPONENT)
         bestMove = getNextBestMove(boards, int(args[0]))
         place(curr, bestMove, PLAYER)
+        MOVE += 1
+        if MOVE % 10 == 0:
+            DEPTH += 1
         return bestMove
     elif command == "win":
         print("Yay!! We win!! :)")
