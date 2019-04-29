@@ -130,7 +130,7 @@ class MinMaxNode:
         boardsChildren = []
         for i in range(1,10):
             if (self.fullBoard[targetBoard][i] == 0):
-                childBoards = np.(self.fullBoard)
+                childBoards = np.copy(self.fullBoard)
                 childBoards[targetBoard][i] = num
                 child = MinMaxNode(self, childBoards, i, 0)
                 boardsChildren.append(child)
