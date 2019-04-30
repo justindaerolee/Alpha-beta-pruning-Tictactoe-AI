@@ -14,14 +14,14 @@ import numpy as np
 #   2 - They played here
 
 # the boards are of size 10 because index 0 isn't used
-boards = np.zeros((10, 10), dtype="int8")
+boards = np.zeros((10, 10), dtype="int32")
 curr = 0 # this is the current board to play in
 
 '''
 My section
 '''
 INF = 1000000
-DEPTH = 5
+DEPTH = 2
 MOVE = 0
 
 PLAYER_X = 1
@@ -31,55 +31,70 @@ PLAYER_O = 2
 PLAYER = 0
 OPPONENT = 0
 
-IS_ALPHA_FLAG = 2
-IS_BETA_FLAG = 3
-
 
 
 # MinMaxNode class definition
 class MinMaxNode:
-    # flag = 0 (is non-leaf), 1 (leaf), 2 (initial alpha), 3 (intial beta)
-    def __init__(self, prevNode, currState, move, flag):
+    def __init__(self, prevNode, currState, move, scores):
         global INF
         self.prevNode = prevNode
         self.fullBoard = currState
         self.move = move
-        self.flag = flag
-        self.score = 0
+        self.scores = scores
 
-    # score only needed for leaf nodes and initial alpha and beta nodes
+    # since the scores hold the heuristic of each board seperately to get the final score
+    # sum the heuristic of all 9 boards
     def getScore(self):
-        global INF
         ret = 0
-        if (self.flag == 1) :
-            ret = self.score
-        elif self.flag == 2:
-            ret = - INF
-        elif self.flag == 3 :
-            ret = INF
-        else :
-            sys.exit("Cannot access score of non-leaf nodes")
-        #print("score" + str(ret))
+        for x in self.scores :
+            ret += x
+
         return ret
 
-    def calculateScore(self):
-        self.flag = 1
-        self.score = self.getHeuristic()
-
-    def getHeuristic(self):
+    def setScore(self):
         scoreCount = 0
-        # Get score for each 3x3 on board
+        # Get score for each 3x3 on board and set it
         for j in range(1,10):
-            score = self.checkGrid(j)
+            num = self.checkGrid(j)
+            print("ASDF" + str(num))
+            self.scores[j] = num
 
-            # If the move we make, the board associated is losing then prioritise avoiding it
-            if j == self.move:
-                if score < 0:
-                    scoreCount -= 30
+    '''
+    NOT needed for this implementation
+        # score only needed for leaf nodes and initial alpha and beta nodes
+        def getScore(self):
+            global INF
+            ret = 0
+            if (self.flag == 1) :
+                ret = self.score
+            elif self.flag == 2:
+                ret = - INF
+            elif self.flag == 3 :
+                ret = INF
+            else :
+                sys.exit("Cannot access score of non-leaf nodes")
+            #print("score" + str(ret))
+            return ret
 
-            scoreCount += score
+        def calculateScore(self):
+            self.flag = 1
+            self.score = self.getHeuristic()
 
-        return scoreCount
+        def getHeuristic(self):
+            scoreCount = 0
+            # Get score for each 3x3 on board
+            for j in range(1,10):
+                score = self.checkGrid(j)
+
+                # If the move we make, the board associated is losing then prioritise avoiding it
+                if j == self.move:
+                    if score < 0:
+                        scoreCount -= 30
+
+                scoreCount += score
+
+            return scoreCount
+    '''
 
     def checkGrid(self, board_num):
         ret = 0
@@ -132,21 +147,19 @@ class MinMaxNode:
             if (self.fullBoard[targetBoard][i] == 0):
                 childBoards = np.copy(self.fullBoard)
                 childBoards[targetBoard][i] = num
-                child = MinMaxNode(self, childBoards, i, 0)
+                scores2 = np.copy(self.prevNode.scores)
+                scores2[targetBoard] = self.checkGrid(targetBoard)
+                child = MinMaxNode(self, childBoards, i, scores2)
                 boardsChildren.append(child)
-                #print("HELLOOO")
-                #print_board(child.fullBoard)
         return boardsChildren
 
     # wrapper function for alpha beta pruning
     def minmax(self):
         global INF
         global DEPTH
-        global IS_ALPHA_FLAG
-        global IS_BETA_FLAG
         global PLAYER
-        alpha = MinMaxNode(None, None, 0, IS_ALPHA_FLAG)
-        beta = MinMaxNode(None, None, 0, IS_BETA_FLAG)
+        alpha = MinMaxNode(None, None, 0, [-INF,0,0,0,0,0,0,0,0,0])
+        beta = MinMaxNode(None, None, 0, [INF,0,0,0,0,0,0,0,0,0])
         return self.alphabeta(DEPTH, alpha, beta, PLAYER)
 
     # alpha beta pruning
@@ -155,7 +168,8 @@ class MinMaxNode:
         global PLAYER
         global OPPONENT
         if depth == 0 or isEnd(self.fullBoard[self.prevNode.move]): # what if the self.prevNode.move == None when depth is set to 1
-            self.calculateScore()
+            print_board(self.fullBoard)
+            print("S " + str(self.getScore()))
             return self
         elif num == PLAYER:
             for child in self.getChildren(self.move, PLAYER):
@@ -190,8 +204,9 @@ class MinMaxNode:
 def getNextBestMove(fullBoard, move):
     global curr
     checkPlayersSet() # make sure the players are set
-    prev = MinMaxNode(None, None, curr, 0)
-    m = MinMaxNode(prev, fullBoard, move, 0)
+    prev = MinMaxNode(None, None, curr, np.zeros(10, dtype="int32"))
+    m = MinMaxNode(prev, fullBoard, move, np.zeros(10, dtype="int32"))
+    m.setScore()
     return m.findMinmaxMove()
 
 
@@ -366,21 +381,38 @@ def main():
                 s.sendall((str(response) + "\n").encode())
 
 def test():
-    boards[1][5] = 2
-    boards[4][5] = 2
+    boards[1][1] = 2
+    boards[3][3] = 2
+    boards[4][4] = 2
     boards[5][1] = 2
-    boards[9][5] = 2
+    boards[5][5] = 2
+    #boards[6][1] = 2
+    boards[6][6] = 2
+    boards[7][7] = 2
+    boards[8][8] = 2
+    boards[9][9] = 2
 
+
+    #boards[1][3] = 1
+    boards[1][6] = 1
     boards[1][9] = 1
-    boards[5][4] = 1
-    boards[5][5] = 1
-    boards[5][6] = 1
-    boards[6][1] = 1
-    a = MinMaxNode(None, boards, 0, 0)
+    boards[3][4] = 1
+    boards[3][5] = 1
+    boards[4][5] = 1
+    boards[5][7] = 1
+    boards[6][3] = 1
+    boards[7][1] = 1
+    boards[8][6] = 1
+    boards[9][8] = 1
+    a = MinMaxNode(None, boards, 0, np.zeros(10, dtype="int32"))
     setPlayer('o')
-    a.calculateScore()
+    a.setScore()
     print(a.getScore())
+    print_board(boards)
+    global curr
+    curr = 8
+    print(getNextBestMove(boards, 6))
 
 if __name__ == "__main__":
-    main()
-    #test()
+    #main()
+    test()
