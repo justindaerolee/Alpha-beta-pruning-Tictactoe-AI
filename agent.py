@@ -48,7 +48,6 @@ class MinMaxNode:
         ret = 0
         for x in self.scores :
             ret += x
-
         return ret
 
     def setScore(self):
@@ -56,7 +55,7 @@ class MinMaxNode:
         # Get score for each 3x3 on board and set it
         for j in range(1,10):
             num = self.checkGrid(j)
-            print("ASDF" + str(num))
+            # print("ASDF" + str(num))
             self.scores[j] = num
 
     '''
@@ -147,8 +146,9 @@ class MinMaxNode:
             if (self.fullBoard[targetBoard][i] == 0):
                 childBoards = np.copy(self.fullBoard)
                 childBoards[targetBoard][i] = num
+                tmp = MinMaxNode(self, childBoards, i, 0)
                 scores2 = np.copy(self.prevNode.scores)
-                scores2[targetBoard] = self.checkGrid(targetBoard)
+                scores2[targetBoard] = tmp.checkGrid(targetBoard)
                 child = MinMaxNode(self, childBoards, i, scores2)
                 boardsChildren.append(child)
         return boardsChildren
@@ -168,13 +168,13 @@ class MinMaxNode:
         global PLAYER
         global OPPONENT
         if depth == 0 or isEnd(self.fullBoard[self.prevNode.move]): # what if the self.prevNode.move == None when depth is set to 1
-            print_board(self.fullBoard)
+            # print_board(self.fullBoard)
             print("S " + str(self.getScore()))
             return self
         elif num == PLAYER:
             for child in self.getChildren(self.move, PLAYER):
                 childNode = child.alphabeta(depth-1, alpha, beta, OPPONENT)
-                #print_board(childNode.fullBoard)
+                # print_board(childNode.fullBoard)
                 if childNode.getScore() > alpha.getScore() :
                     alpha = childNode
                 if alpha.getScore() >= beta.getScore() :
@@ -414,5 +414,5 @@ def test():
     print(getNextBestMove(boards, 6))
 
 if __name__ == "__main__":
-    #main()
-    test()
+    main()
+    # test()
