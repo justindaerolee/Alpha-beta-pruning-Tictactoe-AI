@@ -3,31 +3,29 @@
 # 06/04/19
 
 # Written by Justin Lee (Dae Ro), z5060887
+#            William Ye, z5061340
 
 import socket
 import sys
 import numpy as np
 
-# a board cell can hold:
+# A board cell can hold:
 #   0 - Empty
 #   1 - I played here
 #   2 - They played here
 
-# the boards are of size 10 because index 0 isn't used
+# The boards are of size 10 because index 0 isn't used
 boards = np.zeros((10, 10), dtype="int32")
 curr = 0 # this is the current board to play in
 
-'''
-My section
-'''
 INF = 1000000
-DEPTH = 2
+DEPTH = 5 # Starting depth of search
 MOVE = 0
 
 PLAYER_X = 1
 PLAYER_O = 2
 
-# global function that determines whether start(x) or start(o)
+# Global function that determines whether start(x) or start(o)
 PLAYER = 0
 OPPONENT = 0
 
@@ -42,14 +40,14 @@ class MinMaxNode:
         self.move = move
         self.scores = scores
 
-    # since the scores hold the heuristic of each board seperately to get the final score
-    # sum the heuristic of all 9 boards
+    # Calculate the heuristic by summing all the scores of subgrids
     def getScore(self):
         ret = 0
         for x in self.scores :
             ret += x
         return ret
 
+    # Sets the score for the initial Min Max Node
     def setScore(self):
         scoreCount = 0
         # Get score for each 3x3 on board and set it
@@ -58,43 +56,7 @@ class MinMaxNode:
             # print("ASDF" + str(num))
             self.scores[j] = num
 
-    '''
-    NOT needed for this implementation
-        # score only needed for leaf nodes and initial alpha and beta nodes
-        def getScore(self):
-            global INF
-            ret = 0
-            if (self.flag == 1) :
-                ret = self.score
-            elif self.flag == 2:
-                ret = - INF
-            elif self.flag == 3 :
-                ret = INF
-            else :
-                sys.exit("Cannot access score of non-leaf nodes")
-            #print("score" + str(ret))
-            return ret
-
-        def calculateScore(self):
-            self.flag = 1
-            self.score = self.getHeuristic()
-
-        def getHeuristic(self):
-            scoreCount = 0
-            # Get score for each 3x3 on board
-            for j in range(1,10):
-                score = self.checkGrid(j)
-
-                # If the move we make, the board associated is losing then prioritise avoiding it
-                if j == self.move:
-                    if score < 0:
-                        scoreCount -= 30
-
-                scoreCount += score
-
-            return scoreCount
-    '''
-
+    # Calculates the heuristic for a subgrid
     def checkGrid(self, board_num):
         ret = 0
         arr = [[1,2,3],[4,5,6],[7,8,9],[1,4,7],[2,5,8],[3,6,9],[1,5,9],[3,5,7]]
@@ -106,6 +68,7 @@ class MinMaxNode:
                 ret += score
         return ret
 
+    # Calculates the heuristic for a single line of a subgrid
     def checkLine(self, arr, board_num):
         global PLAYER
         global OPPONENT
@@ -125,21 +88,24 @@ class MinMaxNode:
             # Opponent wins
             return -1000
         elif (num_player == 2 and num_oppo == 0):
+            # Player has big advantage
             return 10
         elif (num_player == 1 and num_oppo == 0):
+            # Player has small advantage
             return 1
         elif (num_oppo == 2 and num_player == 0):
+            # Opponent has big advantage
             return -10
         elif (num_oppo == 1 and num_player == 0):
+            # Opponent has small advantage
             return -1
         else:
             # no advantage
             return 0
 
 
-    # finds the children of the current board state
-    # children are not being added properly, the currboard is off
-    # one is the Ai's turn
+    # Finds the children of the current board state and assigns a score
+    # based on iterative heuristic calculation
     def getChildren(self, targetBoard, num):
         boardsChildren = []
         for i in range(1,10):
@@ -149,11 +115,16 @@ class MinMaxNode:
                 tmp = MinMaxNode(self, childBoards, i, 0)
                 scores2 = np.copy(self.prevNode.scores)
                 scores2[targetBoard] = tmp.checkGrid(targetBoard)
+
+                # Avoid subgrid that opponent is winning
+                if scores2[i] < -10:
+                    scores2[i] -= 50
+
                 child = MinMaxNode(self, childBoards, i, scores2)
                 boardsChildren.append(child)
         return boardsChildren
 
-    # wrapper function for alpha beta pruning
+    # Wrapper function for alpha beta pruning
     def minmax(self):
         global INF
         global DEPTH
@@ -162,19 +133,15 @@ class MinMaxNode:
         beta = MinMaxNode(None, None, 0, [INF,0,0,0,0,0,0,0,0,0])
         return self.alphabeta(DEPTH, alpha, beta, PLAYER)
 
-    # alpha beta pruning
-    # is the self.prevNode right?
+    # Alpha-Beta Pruning
     def alphabeta(self, depth, alpha, beta, num):
         global PLAYER
         global OPPONENT
         if depth == 0 or isEnd(self.fullBoard[self.prevNode.move]): # what if the self.prevNode.move == None when depth is set to 1
-            # print_board(self.fullBoard)
-            print("S " + str(self.getScore()))
             return self
         elif num == PLAYER:
             for child in self.getChildren(self.move, PLAYER):
                 childNode = child.alphabeta(depth-1, alpha, beta, OPPONENT)
-                # print_board(childNode.fullBoard)
                 if childNode.getScore() > alpha.getScore() :
                     alpha = childNode
                 if alpha.getScore() >= beta.getScore() :
@@ -183,13 +150,13 @@ class MinMaxNode:
         else:
             for child in self.getChildren(self.move, OPPONENT):
                 childNode = child.alphabeta(depth-1, alpha, beta, PLAYER)
-                #print_board(childNode.fullBoard)
                 if (childNode.getScore() < beta.getScore()) :
                     beta = childNode
                 if alpha.getScore() >= beta.getScore() :
                     break
             return beta
 
+    # Returns move based on MinMax search
     def findMinmaxMove(self):
         node = self.minmax()
         print("The score alphabeta pruning is " + str(node.getScore()))
@@ -199,8 +166,7 @@ class MinMaxNode:
             node = tmp.prevNode
         return tmp.move
 
-### End of class Definition
-
+# Gets the best move to be sent to server
 def getNextBestMove(fullBoard, move):
     global curr
     checkPlayersSet() # make sure the players are set
@@ -210,8 +176,7 @@ def getNextBestMove(fullBoard, move):
     return m.findMinmaxMove()
 
 
-# checks for one sub board
-# change this for sub[0] = is empty !!!
+# Checks if the board is full
 def isFull(board):
     for ele in board:
         if ele == 0:
@@ -229,14 +194,13 @@ def hasWon(board, num):
         (board[1] == num and board[5] == num and board[9] == num) or
         (board[3] == num and board[5] == num and board[7] == num)
         )
-# change later so that we only check hasWon for the player that made the move
+
 def isEnd(board):
     if (isFull(board) or hasWon(board, 1) or hasWon(board, 2)):
         return True
     return False
 
-# CHECK THAT THE PLAYER AND OPPONENT HAS BEEN SET
-# Doesnt need to be set, just extra precaution
+# Precautionary check to see if players have been set
 def checkPlayersSet():
     global PLAYER
     global OPPONENT
@@ -247,7 +211,7 @@ def checkPlayersSet():
     sys.exit("player(X) and player(O) not set")
     return False
 
-# set the global variable of the player and the opponent for the AI.
+# Set the global variable of the player and the opponent for the AI.
 def setPlayer(c):
     global PLAYER
     global OPPONENT
@@ -262,12 +226,9 @@ def setPlayer(c):
     else :
         OPPONENT = 1
     checkPlayersSet()
-'''
-END of mySection
-'''
 
-# print a row
-# This is just ported from game.c
+# Prints a row
+# Ported from game.c
 def print_board_row(board, a, b, c, i, j, k):
     # The marking script doesn't seem to like this either, so just take it out to submit
     print("", board[a][i], board[a][j], board[a][k], end = " | ")
@@ -275,7 +236,7 @@ def print_board_row(board, a, b, c, i, j, k):
     print(board[c][i], board[c][j], board[c][k])
 
 # Print the entire board
-# This is just ported from game.c
+# Ported from game.c
 def print_board(board):
     print_board_row(board, 1,2,3,1,2,3)
     print_board_row(board, 1,2,3,4,5,6)
@@ -290,30 +251,22 @@ def print_board(board):
     print_board_row(board, 7,8,9,7,8,9)
     print()
 
-# choose a move to play
+# Choose a move to play
 def play():
     global boards
-    # print_board(boards)
-
-    # just play a random move for now
     n = np.random.randint(1,9)
     while boards[curr][n] != 0:
         n = np.random.randint(1,9)
-
-    # print("playing", n)
-    place(curr, n, 1)
     return n
 
-# place a move in the global boards
+# Place a move on the global board
 def place(board, num, player):
     global curr
     global boards
     curr = num
     boards[board][num] = player
-    # print_board(boards)
 
-# read what the server sent us and
-# only parses the strings that are necessary
+# Takes the string sent from the server and parses it for relevant information
 def parse(string):
     global curr
     global PLAYER
@@ -334,9 +287,9 @@ def parse(string):
         MOVE += 1
         return bestMove
     elif command == "third_move":
-        # place the move that was generated for us
+        # Place the move that was generated for us
         place(int(args[0]), int(args[1]), PLAYER)
-        # place their last move
+        # Places their last move
         place(curr, int(args[2]), OPPONENT)
         bestMove = getNextBestMove(boards, int(args[2]))
         place(curr, bestMove, PLAYER)
@@ -347,7 +300,8 @@ def parse(string):
         bestMove = getNextBestMove(boards, int(args[0]))
         place(curr, bestMove, PLAYER)
         MOVE += 1
-        if MOVE % 10 == 0:
+        # Increase depth of search by 1 every 7 moves
+        if MOVE % 7 == 0:
             DEPTH += 1
         return bestMove
     elif command == "win":
@@ -360,10 +314,10 @@ def parse(string):
         setPlayer(args[0])
     return 0
 
-# connect to socket
+# Connecting to socket
 def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    port = int(sys.argv[2]) # Usage: ./agent.py -p (port)
+    port = int(sys.argv[2])
 
     s.connect(('localhost', port))
     while True:
@@ -380,39 +334,5 @@ def main():
                 print((str(response) + "\n"))
                 s.sendall((str(response) + "\n").encode())
 
-def test():
-    boards[1][1] = 2
-    boards[3][3] = 2
-    boards[4][4] = 2
-    boards[5][1] = 2
-    boards[5][5] = 2
-    #boards[6][1] = 2
-    boards[6][6] = 2
-    boards[7][7] = 2
-    boards[8][8] = 2
-    boards[9][9] = 2
-
-
-    #boards[1][3] = 1
-    boards[1][6] = 1
-    boards[1][9] = 1
-    boards[3][4] = 1
-    boards[3][5] = 1
-    boards[4][5] = 1
-    boards[5][7] = 1
-    boards[6][3] = 1
-    boards[7][1] = 1
-    boards[8][6] = 1
-    boards[9][8] = 1
-    a = MinMaxNode(None, boards, 0, np.zeros(10, dtype="int32"))
-    setPlayer('o')
-    a.setScore()
-    print(a.getScore())
-    print_board(boards)
-    global curr
-    curr = 8
-    print(getNextBestMove(boards, 6))
-
 if __name__ == "__main__":
     main()
-    # test()
